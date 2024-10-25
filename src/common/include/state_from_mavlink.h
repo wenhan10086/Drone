@@ -17,18 +17,19 @@
 ***************************************************************************************************************************/
 
 #include <ros/ros.h>
-#include <math_utils.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/AttitudeTarget.h>
 #include <mavros_msgs/PositionTarget.h>
+#include <mavros_msgs/OpticalFlowRad.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/ActuatorControl.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <bitset>
+
 
 using namespace std;
 
@@ -66,10 +67,13 @@ class state_from_mavros
         // 【订阅】无人机全局位置 - 来自飞控
         //  本话题来自飞控(通过Mavros功能包)
         global_sub = state_nh.subscribe<sensor_msgs::NavSatFix>("/mavros/global_position/global", 10, &state_from_mavros::global_cb,this);
+
+       
     }
 
     //变量声明 
-    wrzf_pkg::DroneState _DroneState;
+    common::DroneState _DroneState;
+
 
     private:
 
@@ -82,7 +86,7 @@ class state_from_mavros
         ros::Subscriber attitude_sub;
         ros::Subscriber gps_sub;
         ros::Subscriber global_sub;
-
+    
         void state_cb(const mavros_msgs::State::ConstPtr &msg)
         {
             _DroneState.connected = msg->connected;
@@ -145,7 +149,6 @@ class state_from_mavros
             _DroneState.attitude_rate[1] = msg->angular_velocity.y;
             _DroneState.attitude_rate[2] = msg->angular_velocity.z;
         }
-
 
 };
 

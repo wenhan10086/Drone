@@ -9,6 +9,9 @@
 #include"nlink_parser/LinktrackAnchorframe0.h"
 #include"nlink_parser/LinktrackNodeframe2.h"
 #include<eigen3/Eigen/Dense>
+#include"state_from_mavlink.h"
+#include "common/Dronestate.h"
+
 
 class uwb_position_pub
 {   
@@ -27,15 +30,21 @@ class uwb_position_pub
 
             sub_from_uwb=uwb_position_pub_node.subscribe<nlink_parser::LinktrackNodeframe2>("/nlink_linktrack_nodeframe2",10,&uwb_position_pub::position_from_uwb_cb,this);
             pub_to_mavlink=uwb_position_pub_node.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",10);
-
+            opticalFlowRad_sub=state_nh.subscribe<mavros_msgs::OpticalFlowRad>("/mavros/px4flow/raw/optical_flow_rad",10,&opticalFlowRad_cb,this);
         }
+
     geometry_msgs::PoseStamped pose_t_drone;
-    
+
+    float opticalFlowRad_distance;
+
+    void pub_position_to_drone();
 
     private:
         ros::NodeHandle uwb_position_pub_node;
         ros::Publisher pub_to_mavlink;
         ros::Subscriber sub_from_uwb;
+        ros::Subscriber opticalFlowRad_sub;
+
         void position_from_uwb_cb(nlink_parser::Linktrackframe2ConstPtr & msg)
         {
             pose_t_drone.header.stamp=ros::Time::now();
@@ -50,7 +59,19 @@ class uwb_position_pub
             pose_t_drone.pose.orientation.z=msg->quaternion[2];
             pose_t_drone.pose.orientation.w=msg->quaternion[3];
         }
-}
 
+        void opticalFlowRad_cb(OpticalFlowRadConstPtr& msg)
+        {
+            opticalFlowRad_distance=msg.distance;
+        }
+
+};
+
+void uwb_position_pub::pub_position_to_drone()
+{
+    pose_t_drone.z=opticalFlowRad_distance;
+    std::cout<<pose_t_drone.x<<""<<pose_t_drone.y<<""<<pose_t_drone.z<<""<<std::endl;
+    pub_to_mavlink.publish(pose_t_drone);
+}
 
 #endif
