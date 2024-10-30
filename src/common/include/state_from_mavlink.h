@@ -29,9 +29,8 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <bitset>
-
-
-using namespace std;
+#include "common_msg/DroneState.h"
+#include <unordered_map>
 
 class state_from_mavros
 {
@@ -72,7 +71,7 @@ class state_from_mavros
     }
 
     //变量声明 
-    common::DroneState _DroneState;
+    common_msg::DroneState _DroneState;
 
 
     private:
@@ -86,48 +85,70 @@ class state_from_mavros
         ros::Subscriber attitude_sub;
         ros::Subscriber gps_sub;
         ros::Subscriber global_sub;
-    
+        
+        Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond& q) 
+        {
+            // 确保四元数是单位四元数
+            Eigen::Quaterniond normalized_q = q.normalized();
+
+            // 提取四元数的分量
+            double x = normalized_q.x();
+            double y = normalized_q.y();
+            double z = normalized_q.z();
+            double w = normalized_q.w();
+
+            // 计算滚转角（roll）
+            double roll = atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y));
+
+            // 计算俯仰角（pitch）
+            double pitch = asin(2.0 * (w * y - z * x));
+
+            // 计算偏航角（yaw）
+            double yaw = atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+
+            return Eigen::Vector3d(roll, pitch, yaw);
+        }       
         void state_cb(const mavros_msgs::State::ConstPtr &msg)
         {
-            _DroneState.connected = msg->connected;
-            _DroneState.armed = msg->armed;
-            _DroneState.mode = msg->mode;
+            this->_DroneState.connected = msg->connected;
+            this->_DroneState.armed = msg->armed;
+            this->_DroneState.mode = msg->mode;
         }
 
         void gps_cb(const sensor_msgs::NavSatFix::ConstPtr &msg)
         {
-            _DroneState.gps_status = msg->status.status;
-            _DroneState.latitude = msg->latitude;
-            _DroneState.longitude = msg->longitude;
-            _DroneState.altitude = msg->altitude;
+            this->_DroneState.gps_status = msg->status.status;
+            this->_DroneState.latitude = msg->latitude;
+            this->_DroneState.longitude = msg->longitude;
+            this->_DroneState.altitude = msg->altitude;
         }
 
         void global_cb(const sensor_msgs::NavSatFix::ConstPtr &msg)
         {
-            _DroneState.latitude = msg->latitude;
-            _DroneState.longitude = msg->longitude;
-            _DroneState.altitude = msg->altitude;
+            this->_DroneState.latitude = msg->latitude;
+            this->_DroneState.longitude = msg->longitude;
+            this->_DroneState.altitude = msg->altitude;
         }
 
         void pos_cb(const geometry_msgs::PoseStamped::ConstPtr &msg)
         {
-            _DroneState.position[0] = msg->pose.position.x;
-            _DroneState.position[1] = msg->pose.position.y;
-            _DroneState.position[2] = msg->pose.position.z;
+            this->_DroneState.position[0] = msg->pose.position.x;
+            this->_DroneState.position[1] = msg->pose.position.y;
+            this->_DroneState.position[2] = msg->pose.position.z;
         }
 
         void vel_cb(const geometry_msgs::TwistStamped::ConstPtr &msg)
         {
-            _DroneState.velocity[0] = msg->twist.linear.x;
-            _DroneState.velocity[1] = msg->twist.linear.y;
-            _DroneState.velocity[2] = msg->twist.linear.z;
+            this->_DroneState.velocity[0] = msg->twist.linear.x;
+            this->_DroneState.velocity[1] = msg->twist.linear.y;
+            this->_DroneState.velocity[2] = msg->twist.linear.z;
         }
 
         void vel_body_cb(const geometry_msgs::TwistStamped::ConstPtr &msg)
         {
-            _DroneState.velocity_body[0] = msg->twist.linear.x;
-            _DroneState.velocity_body[1] = msg->twist.linear.y;
-            _DroneState.velocity_body[2] = msg->twist.linear.z;
+            this->_DroneState.velocity_body[0] = msg->twist.linear.x;
+            this->_DroneState.velocity_body[1] = msg->twist.linear.y;
+            this->_DroneState.velocity_body[2] = msg->twist.linear.z;
         }
 
         void att_cb(const sensor_msgs::Imu::ConstPtr& msg)
@@ -136,18 +157,18 @@ class state_from_mavros
             //Transform the Quaternion to euler Angles
             Eigen::Vector3d euler_fcu = quaternion_to_euler(q_fcu);
             
-            _DroneState.attitude_q.w = q_fcu.w();
-            _DroneState.attitude_q.x = q_fcu.x();
-            _DroneState.attitude_q.y = q_fcu.y();
-            _DroneState.attitude_q.z = q_fcu.z();
+            this->_DroneState.attitude_q.w = q_fcu.w();
+            this->_DroneState.attitude_q.x = q_fcu.x();
+            this->_DroneState.attitude_q.y = q_fcu.y();
+            this->_DroneState.attitude_q.z = q_fcu.z();
 
-            _DroneState.attitude[0] = euler_fcu[0];
-            _DroneState.attitude[1] = euler_fcu[1];
-            _DroneState.attitude[2] = euler_fcu[2];
+            this->_DroneState.attitude[0] = euler_fcu[0];
+            this->_DroneState.attitude[1] = euler_fcu[1];
+            this->_DroneState.attitude[2] = euler_fcu[2];
 
-            _DroneState.attitude_rate[0] = msg->angular_velocity.x;
-            _DroneState.attitude_rate[1] = msg->angular_velocity.y;
-            _DroneState.attitude_rate[2] = msg->angular_velocity.z;
+           this-> _DroneState.attitude_rate[0] = msg->angular_velocity.x;
+           this-> _DroneState.attitude_rate[1] = msg->angular_velocity.y;
+           this-> _DroneState.attitude_rate[2] = msg->angular_velocity.z;
         }
 
 };

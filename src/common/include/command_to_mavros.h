@@ -31,7 +31,7 @@ class command_to_mavros
 
         // 【订阅】无人机当前状态 - 来自飞控
         //  本话题来自飞控(通过/plugins/sys_status.cpp)
-        state_sub = command_nh.subscribe<mavros_msgs::State>("/mavros/state", 10, &command_to_mavros::state_cb,this);
+        state_target_sub = command_nh.subscribe<mavros_msgs::State>("/mavros/state", 10, &command_to_mavros::state_cb,this);
 
         // 【订阅】无人机期望位置/速度/加速度 坐标系:ENU系
         //  本话题来自飞控(通过Mavros功能包 /plugins/setpoint_raw.cpp读取), 对应Mavlink消息为POSITION_TARGET_LOCAL_NED, 对应的飞控中的uORB消息为vehicle_local_position_setpoint.msg
@@ -144,8 +144,6 @@ class command_to_mavros
     //发送底层至飞控（输入：MxMyMz,期望推力）[Not recommanded. Because the high delay between the onboard computer and Pixhawk]
     void send_actuator_setpoint(const Eigen::Vector4d& actuator_sp);
 
-    //将uwb得到的位置信息发送给飞控
-    void send_uwb_position_pub(const )
 
     Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond& q) 
     {
@@ -166,7 +164,7 @@ class command_to_mavros
         ros::Publisher setpoint_raw_attitude_pub;
         ros::Publisher actuator_setpoint_pub;
         
-        void pos_target_cb(const mavros_msgs::PositionTarget::Constptr& msg)
+        void pos_target_cb(const mavros_msgs::PositionTarget::ConstPtr& msg)
         {
             pos_drone_fcu_target = Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z);
 
@@ -183,7 +181,7 @@ class command_to_mavros
 
             rates_fcu_target = Eigen::Vector3d(msg->body_rate.x, msg->body_rate.y, msg->body_rate.z);
 
-            Thrust_target = msg.thrust;
+            Thrust_target = msg->thrust;
         }
 
         void actuator_target_cb(const mavros_msgs::ActuatorControl::ConstPtr& msg)
@@ -196,7 +194,8 @@ class command_to_mavros
         {
             current_state = *msg;
         }
-}       
+} ;
+
 void command_to_mavros::land()
 {
     if(current_state.mode == "OFFBOARD")

@@ -1,6 +1,8 @@
 #include"uwb_position_pub.h"
 #include"command_to_mavros.h"
 #include"state_from_mavlink.h"
+#include"iostream"
+
 
 
 int main(int argc,char ** argv)
@@ -28,21 +30,17 @@ int main(int argc,char ** argv)
     {
         
         //进入状态机
-        switch (_state_from_mavros._DroneState.mode)
+        if(_state_from_mavros._DroneState.mode=="OFFBOARD")
         {
-        case "OFFBOARD":
-            _uwb_position_pub.usb_position_to_drone();
+            _uwb_position_pub.pub_position_to_drone();
             rate.sleep();
             _command_to_mavros.send_pos_setpoint(_target_pose,0.01);
             rate.sleep();
-            count<< _state_from_mavros._DroneState.attitude_q.w<<""<<_state_from_mavros._DroneState.attitude_q.z<<endl;
+            std::cout<< _state_from_mavros._DroneState.position[0]<<""
+            <<_state_from_mavros._DroneState.position[1] <<""
+            <<_state_from_mavros._DroneState.position[2]<<std::endl;
         
-            break;
-        
-        default:
-            break;
         }
-        
         for(int i=0;i<5;i++)
         {
             ros::spinOnce();
@@ -53,6 +51,4 @@ int main(int argc,char ** argv)
 
       return 0;
 
-
-    
 }

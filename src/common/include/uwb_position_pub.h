@@ -10,7 +10,7 @@
 #include"nlink_parser/LinktrackNodeframe2.h"
 #include<eigen3/Eigen/Dense>
 #include"state_from_mavlink.h"
-#include "common/Dronestate.h"
+#include"common_msg/DroneState.h"
 
 
 class uwb_position_pub
@@ -30,7 +30,7 @@ class uwb_position_pub
 
             sub_from_uwb=uwb_position_pub_node.subscribe<nlink_parser::LinktrackNodeframe2>("/nlink_linktrack_nodeframe2",10,&uwb_position_pub::position_from_uwb_cb,this);
             pub_to_mavlink=uwb_position_pub_node.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",10);
-            opticalFlowRad_sub=state_nh.subscribe<mavros_msgs::OpticalFlowRad>("/mavros/px4flow/raw/optical_flow_rad",10,&opticalFlowRad_cb,this);
+            opticalFlowRad_sub=uwb_position_pub_node.subscribe<mavros_msgs::OpticalFlowRad>("/mavros/px4flow/raw/optical_flow_rad",10,&uwb_position_pub::opticalFlowRad_cb,this);
         }
 
     geometry_msgs::PoseStamped pose_t_drone;
@@ -45,10 +45,10 @@ class uwb_position_pub
         ros::Subscriber sub_from_uwb;
         ros::Subscriber opticalFlowRad_sub;
 
-        void position_from_uwb_cb(nlink_parser::Linktrackframe2ConstPtr & msg)
+        void position_from_uwb_cb(const nlink_parser::LinktrackNodeframe2::ConstPtr & msg)
         {
             pose_t_drone.header.stamp=ros::Time::now();
-            pose_t_drone.frame_id="map";
+            pose_t_drone.header.frame_id="map";
 
             pose_t_drone.pose.position.x=msg->pos_3d[0];
             pose_t_drone.pose.position.y=msg->pos_3d[1];
@@ -60,17 +60,17 @@ class uwb_position_pub
             pose_t_drone.pose.orientation.w=msg->quaternion[3];
         }
 
-        void opticalFlowRad_cb(OpticalFlowRadConstPtr& msg)
+        void opticalFlowRad_cb(const mavros_msgs::OpticalFlowRad::ConstPtr & msg)
         {
-            opticalFlowRad_distance=msg.distance;
+            opticalFlowRad_distance=msg->distance;
         }
 
 };
 
 void uwb_position_pub::pub_position_to_drone()
 {
-    pose_t_drone.z=opticalFlowRad_distance;
-    std::cout<<pose_t_drone.x<<""<<pose_t_drone.y<<""<<pose_t_drone.z<<""<<std::endl;
+    pose_t_drone.pose.position.z=opticalFlowRad_distance;
+    std::cout<<pose_t_drone.pose.position.x<<""<<pose_t_drone.pose.position.y<<""<<pose_t_drone.pose.position.z<<""<<std::endl;
     pub_to_mavlink.publish(pose_t_drone);
 }
 

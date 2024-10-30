@@ -19,16 +19,6 @@ find_package(Eigen3 REQUIRED)
 include_directories(${Eigen3_INCLUDE_DIR})
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Dronestate.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  geometry_msgs
-  std_msgs
-)
 
 catkin_package(
   CATKIN_DEPENDS roscpp rospy std_msgs message_runtime mavros nlink_parser
